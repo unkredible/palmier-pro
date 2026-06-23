@@ -59,3 +59,42 @@ intact. Any `cannot find type … in scope` error therefore points at a symbol
 defined in one of the 145 macOS-only files — i.e. a real coupling that a
 Windows port would have to break out behind a platform abstraction. The error
 count is the size of the refactor.
+
+## Findings (Swift 6.1.2, windows-latest)
+
+The probe ran in five iterations. What each one taught:
+
+1. **Toolchain works, deps mostly don't.** Swift itself builds fine on Windows.
+   But `swift package resolve` died on Swift 6.0.3 (cyclic `ucrt` module while
+   compiling `yyjson`'s manifest — a Tokenizers transitive dep; fixed by 6.1.2).
+   `MCP` (swift-sdk) then failed to compile: `import EventSource` is gated
+   `#if !os(Linux)`, so Windows wrongly imports a missing module. Net: of the 9
+   dependencies, 5 are Apple-only by construction and at least 1 more
+   (swift-sdk) has a live Windows portability bug.
+
+2. **The "import-clean" subset is not a separable core.** Stripping every
+   third-party dep and keeping only the 61 files whose imports are
+   `Foundation`/`Observation`, the build reaches type-checking and produces
+   **~16,800 errors** — **8,022** of them `cannot find type … in scope`.
+
+3. **The coupling is concentrated but structural.** Those 8,022 errors come
+   from just **28 distinct types**, dominated by two: `EditorViewModel` (2,738
+   refs) and `MediaAsset` (2,142). And the core data model itself is fused to
+   Apple frameworks — `MediaAsset` is declared in a file that
+   `import`s AppKit **and** AVFoundation; `EditorViewModel` imports AppKit;
+   `TextStyle` imports AppKit + SwiftUI. There is no Apple-free domain layer to
+   lift out: the model types carry `NSImage`/`AVAsset`/`NSColor` directly.
+
+4. **Minor, mechanical gaps too.** ~136 errors are `URLSession`/
+   `URLSessionDownloadTask` needing `import FoundationNetworking` off Apple
+   platforms — a one-line platform shim, not a redesign.
+
+### Verdict
+
+A clean cross-platform core **does not exist today**. Making one means first
+abstracting ~28 types — above all `MediaAsset` and `EditorViewModel` — behind
+platform-neutral protocols, then re-homing their AppKit/AVFoundation guts
+behind `#if canImport(AppKit)`. That is real porting work, not a build-config
+change, and it touches the structural center of the app. This experiment's
+value is the number on it: the Windows port is gated on decoupling a
+**bounded but central** set of types, not on a long tail.
