@@ -13,8 +13,8 @@ logic is already platform-portable?**
 
 ## What's here
 
-`Sources/PalmierCore/` contains the 64 source files (of 216) that import no
-Apple-only framework — the candidate cross-platform core (~9.4k LOC):
+`Sources/PalmierCore/` contains the 61 source files (of 216) that import only
+Foundation + Observation — the candidate cross-platform core (~9k LOC):
 agent logic, editor view-models, generation catalog/submission, search,
 transcription, models, utilities. **No third-party dependencies** — compiled
 against Foundation + the Swift stdlib only, so a green build means the logic
@@ -31,6 +31,14 @@ Excluded from the macOS app's 71 import-clean files:
   module). Upstream swift-sdk bug, not ours.
 - `Generation/GenerationService.swift` — `@preconcurrency import Combine`.
   Combine is Apple-only (cross-platform substitute: OpenCombine).
+- `Search/Indexing/EmbeddingStore.swift`, `Transcription/TranscriptCache.swift`
+  — import `CryptoKit` (Apple-only; substitute: swift-crypto's `Crypto`).
+- `Telemetry/Telemetry.swift` — imports `Sentry` (sentry-cocoa, Apple-only).
+
+The kept files were selected by a strict rule: every `import` must be either
+`Foundation` or `Observation`. Each substitute above is a one-line import swap,
+not a rewrite — so the portable surface is effectively a few files larger than
+the 61 built here.
 
 Toolchain pinned to Swift 6.1.2 — 6.0.3 hit the `ucrt` cycle above.
 
