@@ -13,20 +13,24 @@ logic is already platform-portable?**
 
 ## What's here
 
-`Sources/PalmierCore/` contains the 68 source files (of 216) that import no
-Apple-only framework — the candidate cross-platform core (~10k LOC):
-agent tools, editor view-models, generation catalog/submission, search,
-transcription, models, utilities.
+`Sources/PalmierCore/` contains the 65 source files (of 216) that import no
+Apple-only framework — the candidate cross-platform core (~9.5k LOC):
+agent logic, editor view-models, generation catalog/submission, search,
+transcription, models, utilities. **No third-party dependencies** — compiled
+against Foundation + the Swift stdlib only, so a green build means the logic
+itself is portable.
 
 Excluded from the macOS app's 71 import-clean files:
 - `Generation/Edit/EditAction.swift` — references `AVAsset`
 - `Agent/Clients/PalmierClient.swift` — imports `ClerkKit` (Apple-only)
-- `Search/Models/TextTokenizer.swift` — imports `Tokenizers`, whose transitive
-  C dep `yyjson` tripped a Swift 6.0.x Windows toolchain bug (cyclic `ucrt`
-  module) at manifest-compile time. Dropped to isolate our own code.
+- `Search/Models/TextTokenizer.swift` — imports `Tokenizers`; its transitive C
+  dep `yyjson` tripped a Swift 6.0.x Windows toolchain bug (cyclic `ucrt`).
+- `Agent/MCP/MCPService.swift`, `Agent/Tools/ToolDefinitions.swift`,
+  `Agent/Tools/ToolResult.swift` — import `MCP` (swift-sdk), which fails to
+  build on Windows (`import EventSource` gated `#if !os(Linux)` → missing
+  module). Upstream swift-sdk bug, not ours.
 
-Dependency kept (cross-platform): `MCP` (swift-sdk). Toolchain pinned to
-Swift 6.1.2 — 6.0.3 hit the `ucrt` cycle above.
+Toolchain pinned to Swift 6.1.2 — 6.0.3 hit the `ucrt` cycle above.
 
 ## Running it
 

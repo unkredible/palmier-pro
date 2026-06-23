@@ -4,11 +4,16 @@
 // Goal: probe how much of PalmierPro's non-UI logic compiles on a
 // non-Apple platform (Windows/Linux) once the AppKit/SwiftUI/AVFoundation
 // layers are removed. Builds an isolated `PalmierCore` library from the
-// 69 source files that import no Apple-only framework.
+// import-clean source files, with NO third-party dependencies.
 //
-// Expected: cross-references into the macOS-only files surface as
-// "cannot find type ... in scope" errors. That error list quantifies the
-// refactoring a real Windows port would need.
+// Earlier iterations were blocked outside our code:
+//   - swift-transformers (Tokenizers) pulled yyjson, which tripped a Swift
+//     6.0.x Windows toolchain bug (cyclic 'ucrt' module) at manifest compile.
+//   - MCP (swift-sdk) failed to build on Windows: `import EventSource` is
+//     gated `#if !os(Linux)`, so it (wrongly) imports a missing module on
+//     Windows. That's an upstream swift-sdk portability bug, not ours.
+// Both deps and their consumer files are excluded so this probe compiles
+// only PalmierPro's own logic against Foundation + the Swift stdlib.
 
 import PackageDescription
 
@@ -17,19 +22,9 @@ let package = Package(
     products: [
         .library(name: "PalmierCore", targets: ["PalmierCore"]),
     ],
-    dependencies: [
-        .package(url: "https://github.com/modelcontextprotocol/swift-sdk.git", from: "0.11.0"),
-        // swift-transformers (Tokenizers) dropped for this probe: its transitive
-        // C dep yyjson tripped a Swift 6.0.x Windows toolchain bug (cyclic 'ucrt'
-        // module) while compiling its manifest, before our sources were reached.
-        // Its single consumer (Search/Models/TextTokenizer.swift) is excluded too.
-    ],
     targets: [
         .target(
             name: "PalmierCore",
-            dependencies: [
-                .product(name: "MCP", package: "swift-sdk"),
-            ],
             path: "Sources/PalmierCore"
         ),
     ]
