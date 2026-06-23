@@ -13,17 +13,20 @@ logic is already platform-portable?**
 
 ## What's here
 
-`Sources/PalmierCore/` contains the 69 source files (of 216) that import no
-Apple-only framework — the candidate cross-platform core (~10.6k LOC):
+`Sources/PalmierCore/` contains the 68 source files (of 216) that import no
+Apple-only framework — the candidate cross-platform core (~10k LOC):
 agent tools, editor view-models, generation catalog/submission, search,
 transcription, models, utilities.
 
 Excluded from the macOS app's 71 import-clean files:
 - `Generation/Edit/EditAction.swift` — references `AVAsset`
 - `Agent/Clients/PalmierClient.swift` — imports `ClerkKit` (Apple-only)
+- `Search/Models/TextTokenizer.swift` — imports `Tokenizers`, whose transitive
+  C dep `yyjson` tripped a Swift 6.0.x Windows toolchain bug (cyclic `ucrt`
+  module) at manifest-compile time. Dropped to isolate our own code.
 
-Dependencies kept (both cross-platform): `MCP` (swift-sdk), `Tokenizers`
-(swift-transformers).
+Dependency kept (cross-platform): `MCP` (swift-sdk). Toolchain pinned to
+Swift 6.1.2 — 6.0.3 hit the `ucrt` cycle above.
 
 ## Running it
 

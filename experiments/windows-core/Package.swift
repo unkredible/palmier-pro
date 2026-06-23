@@ -19,14 +19,16 @@ let package = Package(
     ],
     dependencies: [
         .package(url: "https://github.com/modelcontextprotocol/swift-sdk.git", from: "0.11.0"),
-        .package(url: "https://github.com/huggingface/swift-transformers", from: "1.3.3"),
+        // swift-transformers (Tokenizers) dropped for this probe: its transitive
+        // C dep yyjson tripped a Swift 6.0.x Windows toolchain bug (cyclic 'ucrt'
+        // module) while compiling its manifest, before our sources were reached.
+        // Its single consumer (Search/Models/TextTokenizer.swift) is excluded too.
     ],
     targets: [
         .target(
             name: "PalmierCore",
             dependencies: [
                 .product(name: "MCP", package: "swift-sdk"),
-                .product(name: "Tokenizers", package: "swift-transformers"),
             ],
             path: "Sources/PalmierCore"
         ),
