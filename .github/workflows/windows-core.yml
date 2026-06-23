@@ -1,0 +1,49 @@
+name: Windows Core (experiment)
+
+# Probe build of the platform-portable subset of PalmierPro on Windows.
+# This does NOT build the macOS app — it builds the isolated PalmierCore
+# library under experiments/windows-core to measure how much non-UI logic
+# compiles off Apple platforms. Manual trigger + on push to windows-build.
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [windows-build]
+
+concurrency:
+  group: windows-core-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build-core:
+    name: Build PalmierCore on Windows
+    runs-on: windows-latest
+    timeout-minutes: 40
+    defaults:
+      run:
+        working-directory: experiments/windows-core
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Swift toolchain
+        uses: compnerd/gha-setup-swift@main
+        with:
+          branch: swift-6.0.3-release
+          tag: 6.0.3-RELEASE
+
+      - name: Show toolchain
+        run: swift --version
+
+      - name: Resolve dependencies
+        run: swift package resolve
+
+      - name: Build (continue on error to capture full diagnostics)
+        run: swift build 2>&1 | tee build.log
+        continue-on-error: true
+
+      - name: Upload build log
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: windows-core-build-log
+          path: experiments/windows-core/build.log
